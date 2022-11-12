@@ -29,14 +29,13 @@ def img_to_tensor(img_path):
 
 
 def show_intermediate_model(
+    model,
     img_path, 
-    model_path: str = config['MODEL']['name'], 
     level=1
 ):
     """
     show the first 30 results of each layer
     """
-    model = models.load_model(model_path)
     layer_outputs = [layer.output for layer in model.layers]
     new_model = models.Model(inputs=model.input, outputs=layer_outputs)
     activations = new_model.predict(img_to_tensor(img_path))
@@ -50,11 +49,11 @@ def show_intermediate_model(
     #     plt.axis("off")
     # plt.show()
 
-    layer_names = [layer.name for layer in model.layers[:8]]
+    layer_names = [layer.name for layer in model.layers[:16]]
 
     images_per_row = 16
     for layer_name, layer_activation in zip(layer_names, activations):
-
+        print(layer_name, layer_activation.shape)
         n_features = layer_activation.shape[-1]
         size = layer_activation.shape[1]
         n_cols = n_features // images_per_row
@@ -72,8 +71,7 @@ def show_intermediate_model(
     plt.show()
 
 
-def show_filters(layer_name, filter_index, model_path=config['MODEL']['path']):
-    model = models.load_model(model_path)
+def show_filters(model, layer_name, filter_index):
     layer = model.get_layer(name=layer_name)
     feature_extractor = Model(inputs=model.inputs, outputs=layer.output)
 
@@ -175,7 +173,11 @@ def show_image(img_path):
 
 
 if __name__ == '__main__':
-    show_filters('conv2d_451', 0, '../src2/age_model')
+    model = models.load_model('../data/gender_model')
+    layer_name = model.layers[1].name
+    # print([layer.name for layer in model.layers])
+    # show_filters(model, layer_name, 0)
+
     if len(sys.argv) > 1:
         # show_image(sys.argv[1])
-        show_intermediate_model(sys.argv[1], '../src2/age_model')
+        show_intermediate_model(model, sys.argv[1], -1)
