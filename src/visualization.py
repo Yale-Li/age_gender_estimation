@@ -7,9 +7,6 @@ from keras import models, Model
 import matplotlib.pyplot as plt
 import numpy as np
 
-"""
-https://keras.io/examples/vision/visualizing_what_convnets_learn/
-"""
 
 config = configparser.ConfigParser()
 config.read('config.ini')
@@ -24,8 +21,8 @@ def img_to_tensor(img_path):
     img = image_utils.load_img(img_path, target_size=IMG_SIZE)
     img_tensor = image_utils.img_to_array(img)
     img_tensor = np.expand_dims(img_tensor, axis=0)
-    img_tensor /= 255
-    print(img_tensor.shape)
+    img_tensor /= 255.
+    # print(img_tensor.shape)
     return img_tensor
 
 
@@ -34,45 +31,29 @@ def show_intermediate_model(
     img_path, 
     level=1
 ):
-    """
-    show the first 30 results of each layer
-    """
-    layer_outputs = [layer.output for layer in model.layers]
+    layer_outputs = [layer.output for layer in model.layers[:]]
     new_model = models.Model(inputs=model.input, outputs=layer_outputs)
-    activations = new_model.predict(img_to_tensor(img_path))
-    layer = activations[level]
-    # print(layer.shape)
+    feature_extractor = new_model.predict(img_to_tensor(img_path))
+    layer = feature_extractor[level]
 
-    # plt.figure(figsize=(10, 10))
-    # for i in range(30):
-    #     ax = plt.subplot(6, 6, i + 1)
-    #     plt.imshow(layer[0, :, :, i], cmap='viridis')
-    #     plt.axis("off")
-    # plt.show()
-
-    layer_names = [layer.name for layer in model.layers[:16]]
-
-    images_per_row = 16
-    for layer_name, layer_activation in zip(layer_names, activations):
-        print(layer_name, layer_activation.shape)
-        n_features = layer_activation.shape[-1]
-        size = layer_activation.shape[1]
-        n_cols = n_features // images_per_row
-        display_grid = np.zeros((size * n_cols, images_per_row * size))
-        for col in range(n_cols):
-            for row in range(images_per_row):
-                channel_image = layer_activation[0, :, :, col * images_per_row + row]
-                channel_image -= channel_image.mean()
-                channel_image /= channel_image.std()
-                channel_image *= 64
-                channel_image += 128
-                channel_image = np.clip(channel_image, 0, 255).astype('uint8')
-                display_grid[col*size: (col+1)*size, row*size:(row+1)*size] = channel_image
-    plt.imshow(display_grid)
+    layer_depth = layer.shape[-1]
+    n = int(np.ceil(np.sqrt(layer_depth)))
+    plt.figure(figsize=(10,10))
+    
+    for i in range(layer_depth):
+        ax = plt.subplot(n, n, i+1)
+        ax.set_xticks([])
+        ax.set_yticks([])
+        plt.imshow(layer[0, :, :, i])
+    plt.suptitle(f'{level}')
     plt.show()
+    return
 
 
 def show_filters(model, layer_name, filter_index):
+    """
+    https://keras.io/examples/vision/visualizing_what_convnets_learn/
+    """
     layer = model.get_layer(name=layer_name)
     feature_extractor = Model(inputs=model.inputs, outputs=layer.output)
 
@@ -100,7 +81,6 @@ def show_filters(model, layer_name, filter_index):
         # ResNet50V2 expects inputs in the range [-1, +1].
         # Here we scale our random inputs to [-0.125, +0.125]
         return (img - 0.5) * 0.25
-
 
     def deprocess_image(img):
         # Normalize array: center on 0., ensure variance is 0.15
@@ -175,11 +155,12 @@ def show_image(img_path):
 
 
 if __name__ == '__main__':
-    model = models.load_model('./gender_model')
-    layer_name = model.layers[1].name
+    model = models.load_model('../data/gender_model')
+    layer_name = model.layers[2].name
     # print([layer.name for layer in model.layers])
-    # show_filters(model, layer_name, 0)
+    show_filters(model, layer_name, 0)
 
     if len(sys.argv) > 1:
-        show_image(sys.argv[1])
-        show_intermediate_model(model, sys.argv[1], -1)
+        # show_image(sys.argv[1])
+        for i in range(41):
+            show_intermediate_model(model, sys.argv[1], i)
