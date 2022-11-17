@@ -158,7 +158,7 @@ if __name__ == '__main__':
     model = models.load_model('../data/gender_model')
     layer_name = model.layers[2].name
     # print([layer.name for layer in model.layers])
-    show_filters(model, layer_name, 0)
+    # show_filters(model, layer_name, 0)
 
     if len(sys.argv) > 1:
         # show_image(sys.argv[1])
